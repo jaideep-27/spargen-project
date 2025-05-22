@@ -1,0 +1,100 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { login } from '../slices/authSlice';
+import { FaLock, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
+import Loader from '../components/ui/Loader';
+import '../styles/AuthPages.css';
+
+const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const { userInfo, loading, error } = useSelector((state) => state.auth);
+  
+  const redirect = location.search ? location.search.split('=')[1] : '/';
+  
+  useEffect(() => {
+    if (userInfo) {
+      navigate(redirect);
+    }
+  }, [userInfo, navigate, redirect]);
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    dispatch(login({ email, password }));
+  };
+  
+  return (
+    <div className="auth-page">
+      <div className="container">
+        <div className="auth-container neu-card">
+          <h1 className="auth-title">Sign In</h1>
+          
+          {error && <div className="auth-error">{error}</div>}
+          
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <div className="input-icon-wrapper">
+                <FaEnvelope className="input-icon" />
+                <input
+                  type="email"
+                  className="neu-input"
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <div className="input-icon-wrapper">
+                <FaLock className="input-icon" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="neu-input"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </div>
+            
+            <button 
+              type="submit" 
+              className="auth-button neu-button neu-button-primary"
+              disabled={loading}
+            >
+              {loading ? <Loader size="small" center={false} /> : 'Sign In'}
+            </button>
+          </form>
+          
+          <div className="auth-links">
+            <Link to="/forgot-password" className="auth-link">Forgot Password?</Link>
+          </div>
+          
+          <div className="auth-redirect">
+            New customer? <Link to={redirect ? `/register?redirect=${redirect}` : '/register'}>Create an account</Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage; 

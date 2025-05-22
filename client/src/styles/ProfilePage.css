@@ -1,0 +1,164 @@
+.profile-page {
+  padding: 2rem 0;
+}
+
+.profile-page .page-title {
+  margin-bottom: 2rem;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.profile-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 992px) {
+  .profile-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.profile-section {
+  background-color: var(--card-bg);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: var(--card-shadow);
+}
+
+.profile-section h2 {
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.input-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-muted);
+}
+
+.profile-page .neu-input {
+  width: 100%;
+  padding: 0.75rem;
+  padding-left: 2.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.profile-page .neu-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.profile-page .neu-button-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.profile-page .neu-button-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.profile-page .neu-button-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+  margin-top: 1rem;
+}
+
+.profile-page .neu-button-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.checkbox-group input {
+  width: auto;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.alert-info {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+  border: 1px solid var(--primary-color);
+  color: var(--primary-dark);
+}
+
+.address-list {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.address-card {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  position: relative;
+  border: 1px solid var(--border-color);
+}
+
+.default-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.address-line {
+  margin-bottom: 0.25rem;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Dark mode specific styles */
+[data-theme='dark'] .profile-page .neu-input {
+  background-color: var(--dark-input-bg);
+  border-color: var(--dark-border-color);
+}
+
+[data-theme='dark'] .profile-section {
+  background-color: var(--dark-card-bg);
+} 
