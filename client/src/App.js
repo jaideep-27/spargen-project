@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getCart } from './slices/cartSlice';
+import { getCart, syncCartWithDatabase } from './slices/cartSlice';
 import { getWishlist } from './slices/wishlistSlice';
 import { getUserProfile } from './slices/authSlice';
 import Layout from './components/layout/Layout';
@@ -16,24 +16,31 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import './styles/main.css';
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector((state) => state.auth);
-  
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const userInfo = useSelector((state) => state.auth.userInfo);
+  const prevUserInfo = React.useRef(userInfo);
+
   useEffect(() => {
-    // Check if user is authenticated from localStorage token
-    dispatch(getUserProfile());
-  }, [dispatch]);
-  
-  useEffect(() => {
-    // Load cart and wishlist when authenticated
-    if (isAuthenticated) {
-      dispatch(getCart());
-      dispatch(getWishlist());
+    if (!isAuthenticated) {
+        dispatch(getUserProfile());
     }
   }, [dispatch, isAuthenticated]);
+
+  useEffect(() => {
+    if (userInfo && !prevUserInfo.current) {
+        if (isAuthenticated) { 
+            dispatch(getCart());
+            dispatch(getWishlist());
+        }
+    } else if (!userInfo && prevUserInfo.current) {
+    }
+    prevUserInfo.current = userInfo;
+  }, [dispatch, userInfo, isAuthenticated]);
   
   return (
     <BrowserRouter>
@@ -50,6 +57,7 @@ function App() {
           <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/verify-email/:verificationToken" element={<VerifyEmailPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

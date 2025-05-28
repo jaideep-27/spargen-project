@@ -1,6 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { setAlert, setLoading } from './uiSlice';
+import { syncCartWithDatabase } from './cartSlice';
+import { resetCart } from './cartSlice';
+import { resetWishlist } from './wishlistSlice';
 
 // Get user info from localStorage
 const userInfo = localStorage.getItem('userInfo')
@@ -9,13 +12,14 @@ const userInfo = localStorage.getItem('userInfo')
 
 const initialState = {
   userInfo,
+  isAuthenticated: !!userInfo,
   error: null,
 };
 
 // Register User
 export const register = createAsyncThunk(
   'auth/register',
-  async ({ name, email, password }, { dispatch, rejectWithValue }) => {
+  async ({ firstName, lastName, email, password }, { dispatch, rejectWithValue }) => {
     try {
       dispatch(setLoading(true));
       
@@ -27,7 +31,7 @@ export const register = createAsyncThunk(
 
       const { data } = await axios.post(
         '/api/auth/register',
-        { name, email, password },
+        { firstName, lastName, email, password },
         config
       );
 
@@ -37,12 +41,10 @@ export const register = createAsyncThunk(
         dispatch(
           setAlert({
             type: 'success',
-            message: data.message || 'Registration successful!',
+            message: data.message || 'Registration successful! Please check your email to verify your account.',
           })
         );
-        
-        localStorage.setItem('userInfo', JSON.stringify(data.data));
-        return data.data;
+        return data;
       } else {
         throw new Error(data.message || 'Registration failed');
       }
@@ -89,6 +91,7 @@ export const login = createAsyncThunk(
       
       if (data.success) {
         localStorage.setItem('userInfo', JSON.stringify(data.data));
+        await dispatch(syncCartWithDatabase());
         return data.data;
       } else {
         throw new Error(data.message || 'Login failed');
@@ -118,6 +121,8 @@ export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { dispatch }) => {
     localStorage.removeItem('userInfo');
+    dispatch(resetCart());
+    dispatch(resetWishlist());
     dispatch(
       setAlert({
         type: 'success',
@@ -188,41 +193,82 @@ export const updateProfile = createAsyncThunk(
 export const getUserProfile = createAsyncThunk(
   'auth/getUserProfile',
   async (_, { dispatch, getState, rejectWithValue }) => {
+    const { auth } = getState();
+    if (!auth.userInfo?.token) {
+      return rejectWithValue('No token found, user not authenticated.');
+    }
     try {
       dispatch(setLoading(true));
-      
-      const { auth } = getState();
-      
       const config = {
         headers: {
           Authorization: `Bearer ${auth.userInfo.token}`,
         },
       };
-
       const { data } = await axios.get('/api/auth/profile', config);
-
       dispatch(setLoading(false));
-      
       if (data.success) {
+        localStorage.setItem('userInfo', JSON.stringify({ ...auth.userInfo, ...data.data }));
         return data.data;
       } else {
-        throw new Error(data.message || 'Failed to get profile');
+        localStorage.removeItem('userInfo');
+        dispatch(logout());
+        throw new Error(data.message || 'Failed to get profile, logging out.');
       }
     } catch (error) {
       dispatch(setLoading(false));
-      
       const message = 
         error.response && error.response.data.message
           ? error.response.data.message
           : error.message;
-          
+      if (message !== 'Logged out successfully') {
+        dispatch(
+          setAlert({
+            type: 'error',
+            message,
+          })
+        );
+      }
+      localStorage.removeItem('userInfo');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Verify Email
+export const verifyEmail = createAsyncThunk(
+  'auth/verifyEmail',
+  async (verificationToken, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setLoading(true));
+      const { data } = await axios.get(
+        `/api/auth/verify-email/${verificationToken}`
+      );
+      dispatch(setLoading(false));
+
+      if (data.success) {
+        dispatch(
+          setAlert({
+            type: 'success',
+            message: data.message || 'Email verified successfully! You can now log in.',
+          })
+        );
+        localStorage.setItem('userInfo', JSON.stringify(data.data));
+        return data.data;
+      } else {
+        throw new Error(data.message || 'Email verification failed');
+      }
+    } catch (error) {
+      dispatch(setLoading(false));
+      const message =
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message;
       dispatch(
         setAlert({
           type: 'error',
           message,
         })
       );
-      
       return rejectWithValue(message);
     }
   }
@@ -239,35 +285,61 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(register.fulfilled, (state, action) => {
-        state.userInfo = action.payload;
         state.error = null;
       })
       .addCase(register.rejected, (state, action) => {
         state.error = action.payload;
+        state.isAuthenticated = false;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.userInfo = action.payload;
+        state.isAuthenticated = true;
         state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
+        state.userInfo = null;
+        state.isAuthenticated = false;
         state.error = action.payload;
       })
       .addCase(logout.fulfilled, (state) => {
         state.userInfo = null;
+        state.isAuthenticated = false;
+        state.error = null;
+      })
+      .addCase(logout.rejected, (state, action) => {
+        state.error = action.payload;
+        state.isAuthenticated = false;
+      })
+      .addCase(getUserProfile.fulfilled, (state, action) => {
+        state.userInfo = { ...state.userInfo, ...action.payload };
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(getUserProfile.rejected, (state, action) => {
+        state.userInfo = null;
+        state.isAuthenticated = false;
+        state.error = action.payload;
+      })
+      .addCase(verifyEmail.fulfilled, (state, action) => {
+        state.userInfo = action.payload;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(verifyEmail.rejected, (state, action) => {
+        state.userInfo = null;
+        state.isAuthenticated = false;
+        state.error = action.payload;
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.userInfo = action.payload;
+        state.isAuthenticated = true;
         state.error = null;
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.error = action.payload;
-      })
-      .addCase(getUserProfile.fulfilled, (state, action) => {
-        state.userInfo = { ...state.userInfo, ...action.payload };
       });
   },
 });
 
 export const { resetAuth } = authSlice.actions;
-
 export default authSlice.reducer; 

@@ -312,7 +312,11 @@ exports.createProductReview = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: 'Review added'
+      message: 'Review added',
+      data: {
+        review: product.reviews[product.reviews.length -1],
+        rating: product.rating
+      }
     });
   } catch (error) {
     console.error(error);

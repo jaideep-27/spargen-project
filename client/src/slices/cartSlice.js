@@ -487,55 +487,80 @@ const cartSlice = createSlice({
       state.cartItems = [];
       state.dbCart = null;
       state.error = null;
+      state.loading = false;
       localStorage.removeItem('cartItems');
     },
   },
   extraReducers: (builder) => {
     builder
+      .addMatcher(
+        (action) => action.type.startsWith('cart/') && action.type.endsWith('/pending'),
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => action.type.startsWith('cart/') && action.type.endsWith('/rejected'),
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      )
       .addCase(getCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.dbCart = action.payload;
         }
+        state.error = null;
       })
       .addCase(addToCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload.dbCart) {
           state.dbCart = action.payload.dbCart;
-        }
-        if (action.payload.cartItems) {
+        } else if (action.payload.cartItems) {
           state.cartItems = action.payload.cartItems;
         }
+        state.error = null;
       })
       .addCase(updateCartItemQuantity.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload.dbCart) {
           state.dbCart = action.payload.dbCart;
-        }
-        if (action.payload.cartItems) {
+        } else if (action.payload.cartItems) {
           state.cartItems = action.payload.cartItems;
         }
+        state.error = null;
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload.dbCart) {
           state.dbCart = action.payload.dbCart;
-        }
-        if (action.payload.cartItems) {
+        } else if (action.payload.cartItems) {
           state.cartItems = action.payload.cartItems;
         }
+        state.error = null;
       })
       .addCase(clearCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload.dbCart) {
           state.dbCart = action.payload.dbCart;
         }
         state.cartItems = [];
+        state.error = null;
       })
       .addCase(syncCartWithDatabase.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           if (action.payload.dbCart) {
             state.dbCart = action.payload.dbCart;
           }
-          if (action.payload.cartItems !== undefined) {
-            state.cartItems = action.payload.cartItems;
-          }
+          state.cartItems = action.payload.cartItems !== undefined ? action.payload.cartItems : [];
         }
+        state.error = null;
+      })
+      .addCase('auth/logout/fulfilled', (state) => {
+        state.dbCart = null;
       });
   },
 });

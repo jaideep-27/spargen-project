@@ -4,7 +4,6 @@ import { setAlert, setLoading } from './uiSlice';
 import { resetCart } from './cartSlice';
 
 const initialState = {
-  orderItems: [],
   shippingAddress: localStorage.getItem('shippingAddress')
     ? JSON.parse(localStorage.getItem('shippingAddress'))
     : {},
@@ -389,10 +388,15 @@ const orderSlice = createSlice({
   name: 'order',
   initialState,
   reducers: {
-    resetOrder: (state) => {
+    resetOrderState: (state) => {
       state.order = null;
+      state.shippingAddress = {};
+      state.paymentMethod = '';
       state.error = null;
       state.success = false;
+      state.loading = false;
+      localStorage.removeItem('shippingAddress');
+      localStorage.removeItem('paymentMethod');
     },
     saveShippingAddress: (state, action) => {
       state.shippingAddress = action.payload;
@@ -405,59 +409,60 @@ const orderSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addMatcher(
+        (action) => 
+          action.type.startsWith('order/') && 
+          action.type.endsWith('/pending') &&
+          action.type !== 'order/createOrder/pending',
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => 
+          action.type.startsWith('order/') && 
+          action.type.endsWith('/rejected') &&
+          action.type !== 'order/createOrder/rejected',
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      )
       .addCase(createOrder.pending, (state) => {
         state.loading = true;
         state.success = false;
+        state.error = null;
       })
       .addCase(createOrder.fulfilled, (state, action) => {
         state.loading = false;
         state.order = action.payload;
         state.success = true;
         state.error = null;
+        state.shippingAddress = {};
+        state.paymentMethod = '';
+        localStorage.removeItem('shippingAddress');
+        localStorage.removeItem('paymentMethod');
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.success = false;
       })
-      .addCase(getOrderDetails.pending, (state) => {
-        state.loading = true;
-      })
       .addCase(getOrderDetails.fulfilled, (state, action) => {
         state.loading = false;
         state.order = action.payload;
         state.error = null;
-      })
-      .addCase(getOrderDetails.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(payOrder.pending, (state) => {
-        state.loading = true;
       })
       .addCase(payOrder.fulfilled, (state, action) => {
         state.loading = false;
         state.order = action.payload;
         state.error = null;
       })
-      .addCase(payOrder.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(getMyOrders.pending, (state) => {
-        state.loading = true;
-      })
       .addCase(getMyOrders.fulfilled, (state, action) => {
         state.loading = false;
         state.orders = action.payload;
         state.error = null;
-      })
-      .addCase(getMyOrders.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(getOrders.pending, (state) => {
-        state.loading = true;
       })
       .addCase(getOrders.fulfilled, (state, action) => {
         state.loading = false;
@@ -467,10 +472,6 @@ const orderSlice = createSlice({
         state.total = action.payload.total;
         state.error = null;
       })
-      .addCase(getOrders.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
       .addCase(updateOrderStatus.fulfilled, (state, action) => {
         state.loading = false;
         if (state.order && state.order._id === action.payload._id) {
@@ -479,6 +480,7 @@ const orderSlice = createSlice({
         state.orders = state.orders.map((order) =>
           order._id === action.payload._id ? action.payload : order
         );
+        state.error = null;
       })
       .addCase(updateOrderTracking.fulfilled, (state, action) => {
         state.loading = false;
@@ -488,10 +490,21 @@ const orderSlice = createSlice({
         state.orders = state.orders.map((order) =>
           order._id === action.payload._id ? action.payload : order
         );
+        state.error = null;
+      })
+      .addCase('auth/logout/fulfilled', (state) => {
+        state.order = null;
+        state.orders = [];
+        state.shippingAddress = {};
+        state.paymentMethod = '';
+        state.success = false;
+        state.error = null;
+        localStorage.removeItem('shippingAddress');
+        localStorage.removeItem('paymentMethod');
       });
   },
 });
 
-export const { resetOrder, saveShippingAddress, savePaymentMethod } = orderSlice.actions;
+export const { resetOrderState, saveShippingAddress, savePaymentMethod } = orderSlice.actions;
 
 export default orderSlice.reducer; 

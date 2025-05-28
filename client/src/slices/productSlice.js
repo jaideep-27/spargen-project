@@ -173,29 +173,25 @@ export const createProductReview = createAsyncThunk(
         dispatch(
           setAlert({
             type: 'success',
-            message: 'Review added successfully',
+            message: data.message || 'Review added successfully',
           })
         );
-        
-        return { success: true };
+        return { review: data.data.review, rating: data.data.rating, productId }; 
       } else {
         throw new Error(data.message || 'Failed to add review');
       }
     } catch (error) {
       dispatch(setLoading(false));
-      
       const message = 
         error.response && error.response.data.message
           ? error.response.data.message
           : error.message;
-          
       dispatch(
         setAlert({
           type: 'error',
           message,
         })
       );
-      
       return rejectWithValue(message);
     }
   }
@@ -421,14 +417,35 @@ const productSlice = createSlice({
       })
       .addCase(createProductReview.fulfilled, (state, action) => {
         state.loading = false;
-        // Refresh product details after review
-        if (action.payload.success && state.product) {
-          state.product = { ...state.product };
+        if (state.product && state.product._id === action.payload.productId) {
+          if (!state.product.reviews) {
+            state.product.reviews = [];
+          }
+          state.product.reviews.push(action.payload.review);
+          state.product.rating = action.payload.rating;
         }
+        const productIndex = state.products.findIndex(p => p._id === action.payload.productId);
+        if (productIndex !== -1) {
+          if (!state.products[productIndex].reviews) {
+            state.products[productIndex].reviews = [];
+          }
+          state.products[productIndex].reviews.push(action.payload.review);
+          state.products[productIndex].rating = action.payload.rating;
+        }
+        state.error = null;
+      })
+      .addCase(createProductReview.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(createProduct.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = [...state.products, action.payload];
+        state.products.push(action.payload); // Add to products list
+        state.error = null;
+      })
+      .addCase(createProduct.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(updateProduct.fulfilled, (state, action) => {
         state.loading = false;
@@ -441,10 +458,23 @@ const productSlice = createSlice({
         if (state.product && state.product._id === action.payload._id) {
           state.product = action.payload;
         }
+        state.error = null;
+      })
+      .addCase(updateProduct.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(deleteProduct.fulfilled, (state, action) => {
         state.loading = false;
         state.products = state.products.filter((p) => p._id !== action.payload);
+        if(state.product && state.product._id === action.payload){
+            state.product = null; // Clear product details if current product deleted
+        }
+        state.error = null;
+      })
+      .addCase(deleteProduct.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });

@@ -33,4 +33,9 @@ router.post('/forgot-password', authController.forgotPassword);
 // @access  Public
 router.put('/reset-password/:resetToken', authController.resetPassword);
 
+// @route   GET /api/auth/verify-email/:verificationToken
+// @desc    Verify email
+// @access  Public
+router.get('/verify-email/:verificationToken', authController.verifyEmail);
+
 module.exports = router; 

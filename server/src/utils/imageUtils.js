@@ -4,6 +4,7 @@
 
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') }); // Load .env from project root
 
 /**
  * Convert relative image paths to absolute URLs with the server domain
@@ -13,25 +14,28 @@ const fs = require('fs');
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
   
-  // If image path already contains http/https, return as is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
 
-  // For assets from client
+  const clientBaseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const serverBaseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
+
   if (imagePath.startsWith('/assets/')) {
-    // Strip the leading slash and point to the client assets directory
-    return `http://localhost:3000${imagePath}`;
+    return `${clientBaseUrl}${imagePath}`;
   }
   
-  // For server uploads
   if (imagePath.startsWith('/uploads/')) {
-    // Point to the server uploads directory
-    return `http://localhost:5001${imagePath}`;
+    return `${serverBaseUrl}${imagePath}`;
   }
   
-  // Default case - assume it's a relative path in uploads
-  return `http://localhost:5001/uploads/${imagePath}`;
+  // Default case - assume it's a relative path in uploads, prefix with server base and /uploads/
+  // Ensure double slashes are not introduced if imagePath might already have /uploads/
+  if (imagePath.startsWith('/')) {
+    return `${serverBaseUrl}/uploads${imagePath}`;
+  } else {
+    return `${serverBaseUrl}/uploads/${imagePath}`;
+  }
 };
 
 /**

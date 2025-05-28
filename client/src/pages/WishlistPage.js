@@ -11,7 +11,7 @@ const WishlistPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { wishlist, loading, error } = useSelector((state) => state.wishlist);
-  const { userInfo, isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (isAuthenticated) {

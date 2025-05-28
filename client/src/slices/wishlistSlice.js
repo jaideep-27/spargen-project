@@ -245,22 +245,30 @@ const wishlistSlice = createSlice({
   reducers: {
     resetWishlist: (state) => {
       state.wishlist = null;
+      state.loading = false;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getWishlist.pending, (state) => {
-        state.loading = true;
-      })
+      .addMatcher(
+        (action) => action.type.startsWith('wishlist/') && action.type.endsWith('/pending'),
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => action.type.startsWith('wishlist/') && action.type.endsWith('/rejected'),
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      )
       .addCase(getWishlist.fulfilled, (state, action) => {
         state.loading = false;
         state.wishlist = action.payload;
         state.error = null;
-      })
-      .addCase(getWishlist.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
       })
       .addCase(addToWishlist.fulfilled, (state, action) => {
         state.loading = false;
@@ -281,6 +289,11 @@ const wishlistSlice = createSlice({
         if (action.payload) {
           state.wishlist = action.payload;
         }
+        state.error = null;
+      })
+      .addCase('auth/logout/fulfilled', (state) => {
+        state.wishlist = null;
+        state.loading = false;
         state.error = null;
       });
   },

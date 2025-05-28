@@ -1,5 +1,6 @@
 const User = require('../models/user.model');
 const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail'); // Import sendEmail utility
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -26,31 +27,43 @@ exports.register = async (req, res) => {
       lastName,
       email,
       password,
-      verificationToken
+      verificationToken,
+      verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000 // Token expires in 24 hours
     });
 
-    // TODO: Send verification email
+    // Create verification URL
+    const verificationURL = `${req.protocol}://${req.get(
+      'host'
+    )}/api/auth/verify-email/${verificationToken}`;
 
-    if (user) {
+    const message = `Thank you for registering. Please verify your email by clicking the following link: \n\n ${verificationURL}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Email Verification',
+        message
+      });
+      
       res.status(201).json({
         success: true,
         message: 'User registered successfully. Please check your email to verify your account.',
-        data: {
-          _id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
-          token: user.getSignedJwtToken()
-        }
+        // We don't send the token here, user gets it after verification or login
       });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        message: 'Invalid user data' 
+
+    } catch (err) {
+      console.error(err);
+      user.verificationToken = undefined;
+      user.verificationTokenExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        success: false,
+        message: 'Email could not be sent',
+        error: err.message
       });
     }
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ 
@@ -237,26 +250,43 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     
-    // Generate reset token
-    const resetToken = crypto.randomBytes(20).toString('hex');
+    // Get reset token
+    const resetToken = user.getResetPasswordToken(); // Use the method from user model
     
-    // Hash token and set to resetPasswordToken field
-    user.resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(resetToken)
-      .digest('hex');
+    await user.save({ validateBeforeSave: false }); // Save reset token and expiry to DB
+    
+    // Create reset URL
+    const resetURL = `${req.protocol}://${req.get(
+      'host'
+    )}/api/auth/reset-password/${resetToken}`;
+
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetURL}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Token',
+        message
+      });
       
-    // Set expire
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+      res.status(200).json({
+        success: true,
+        message: 'Password reset link sent to email'
+      });
+
+    } catch (err) {
+      console.error(err);
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        success: false,
+        message: 'Email could not be sent',
+        error: err.message
+      });
+    }
     
-    await user.save();
-    
-    // TODO: Send reset email
-    
-    res.status(200).json({
-      success: true,
-      message: 'Password reset link sent to email'
-    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ 
@@ -277,36 +307,85 @@ exports.resetPassword = async (req, res) => {
       .createHash('sha256')
       .update(req.params.resetToken)
       .digest('hex');
-    
+
     const user = await User.findOne({
       resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() }
+      resetPasswordExpire: { $gt: Date.now() },
     });
-    
+
     if (!user) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid or expired token' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token',
       });
     }
-    
+
     // Set new password
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-    
     await user.save();
-    
+
+    // Optionally, log the user in and send a token
+    const token = user.getSignedJwtToken();
+
     res.status(200).json({
       success: true,
-      message: 'Password reset successful'
+      message: 'Password reset successfully',
+      data: { token },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server Error', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Verify email
+// @route   GET /api/auth/verify-email/:verificationToken
+// @access  Public
+exports.verifyEmail = async (req, res) => {
+  try {
+    const user = await User.findOne({
+      verificationToken: req.params.verificationToken, // Use the token directly
+      verificationTokenExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification token',
+      });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    const token = user.getSignedJwtToken();
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+      data: {
+        token,
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
     });
   }
 }; 
