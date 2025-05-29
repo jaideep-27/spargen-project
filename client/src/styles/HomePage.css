@@ -178,6 +178,10 @@ section {
   height: 500px;
   text-decoration: none;
   color: white;
+  border-radius: var(--border-radius-small);
+  border: none;
+  box-shadow: none;
+  background-color: var(--surface-color);
 }
 
 .collection-image-container {
@@ -185,6 +189,7 @@ section {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  border-radius: var(--border-radius-small);
 }
 
 .collection-image {
@@ -256,6 +261,16 @@ section {
 
 .collection-card:hover .collection-link::after {
   width: 100%;
+}
+
+/* If .neu-card is the source of the border and is used by .collection-card, 
+   and you want to remove the border only from collection cards, 
+   you might need to override neu-card styles here or adjust .neu-card globally. 
+   For instance, if .neu-card has a border:
+*/
+.collection-card.neu-card {
+    border: none;
+    box-shadow: none;
 }
 
 /* Categories Section */
@@ -506,4 +521,214 @@ section {
     width: 100%;
     margin-top: var(--spacing-sm);
   }
+}
+
+.featured-section {
+  padding: 80px 0;
+  background-color: var(--background-color);
+  position: relative;
+}
+
+.featured-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+  opacity: 0.2;
+}
+
+.featured-section .product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
+}
+
+.featured-section .product-card {
+  background: white;
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.featured-section .product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.featured-section .product-card-image {
+  position: relative;
+  padding-top: 100%;
+  overflow: hidden;
+}
+
+.featured-section .product-card-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.featured-section .product-card:hover .product-card-image img {
+  transform: scale(1.1);
+}
+
+.featured-section .product-sale-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 5px 10px;
+  border-radius: var(--border-radius-small);
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.featured-section .product-info {
+  padding: 20px;
+  text-align: center;
+}
+
+.featured-section .product-category {
+  color: var(--text-light);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.featured-section .product-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.featured-section .product-price-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.featured-section .product-sale-price {
+  color: var(--primary-color);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.featured-section .product-regular-price {
+  color: var(--text-light);
+  text-decoration: line-through;
+  font-size: 14px;
+}
+
+.featured-section .product-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.featured-section .btn-add-to-cart,
+.featured-section .btn-add-to-wishlist {
+  padding: 8px 15px;
+  border-radius: var(--border-radius-small);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.featured-section .btn-add-to-cart {
+  background-color: var(--primary-color);
+  color: white;
+  flex: 1;
+}
+
+.featured-section .btn-add-to-cart:hover {
+  background-color: var(--accent-color);
+}
+
+.featured-section .btn-add-to-wishlist {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  width: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.featured-section .btn-add-to-wishlist:hover {
+  background-color: var(--background-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+@media (max-width: 1200px) {
+  .featured-section .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .featured-section .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .featured-section .product-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .featured-section {
+    padding: 40px 0;
+  }
+}
+
+.loading-spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(190, 140, 91, 0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  text-align: center;
+  padding: 40px;
+  color: var(--error-color);
+  font-size: 16px;
+}
+
+.no-products-message {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-light);
+  font-size: 16px;
 } 

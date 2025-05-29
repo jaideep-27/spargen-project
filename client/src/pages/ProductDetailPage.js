@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getProductDetails } from '../slices/productSlice';
 import { addToCart } from '../slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from '../slices/wishlistSlice';
-import Loader from '../components/ui/Loader';
+import { getRandomCategoryImage } from '../utils/imageUtils';
+import ProductImage from '../components/ProductImage';
 import Alert from '../components/ui/Alert';
 import '../styles/product-detail.css';
 
@@ -12,7 +13,7 @@ const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { product, loading, error } = useSelector((state) => state.product);
+  const { product, loading: productSliceLoading, error } = useSelector((state) => state.product);
   const { wishlistItems } = useSelector((state) => state.wishlist);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [quantity, setQuantity] = useState(1);
@@ -27,7 +28,8 @@ const ProductDetailPage = () => {
 
   useEffect(() => {
     if (wishlistItems && product) {
-      setIsInWishlist(wishlistItems.some(item => item.product._id === product._id));
+      const items = Array.isArray(wishlistItems) ? wishlistItems : (wishlistItems.products || []);
+      setIsInWishlist(items.some(item => item.product?._id === product._id));
     }
   }, [wishlistItems, product]);
 
@@ -59,30 +61,69 @@ const ProductDetailPage = () => {
     }
   };
 
-  if (loading) return <Loader />;
-  if (error) return <Alert type="error" message={error} />;
-  if (!product) return <Alert type="error" message="Product not found" />;
+  const getDisplayImages = () => {
+    if (product && product.images && product.images.length > 0) {
+      return product.images;
+    }
+    if (product) {
+      return [{ url: getRandomCategoryImage(product.category || 'jewelry'), altText: product.name }];
+    }
+    return [];
+  };
+
+  if (productSliceLoading && !product) {
+    return null;
+  }
+
+  if (error) {
+    return <div className="container"><Alert type="error" message={error} /></div>;
+  }
+
+  if (!product) {
+    return <div className="container"><Alert type="error" message="Product not found." /></div>;
+  }
+
+  const displayImages = getDisplayImages();
 
   return (
     <div className="product-detail-container">
       <div className="product-detail-grid">
         <div className="product-images">
           <div className="main-image">
-            <img 
-              src={product.images && product.images[selectedImage]} 
-              alt={product.name}
-            />
+            {displayImages.length > 0 ? (
+              <ProductImage 
+                image={displayImages[selectedImage]?.url}
+                altText={displayImages[selectedImage]?.altText || product.name}
+                category={product.category}
+                width="100%"
+                height="100%"
+              />
+            ) : (
+              <ProductImage 
+                image={getRandomCategoryImage(product.category || 'jewelry')}
+                altText={product.name}
+                category={product.category}
+                width="100%"
+                height="100%"
+              />
+            )}
           </div>
           
-          {product.images && product.images.length > 1 && (
+          {displayImages.length > 1 && (
             <div className="thumbnail-container">
-              {product.images.map((image, index) => (
+              {displayImages.map((img, index) => (
                 <div 
                   key={index} 
                   className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
                   onClick={() => setSelectedImage(index)}
                 >
-                  <img src={image} alt={`${product.name} thumbnail ${index + 1}`} />
+                  <ProductImage 
+                    image={img.url}
+                    altText={img.altText || `${product.name} thumbnail ${index + 1}`}
+                    category={product.category}
+                    width="80px"
+                    height="80px"
+                  />
                 </div>
               ))}
             </div>
@@ -91,7 +132,17 @@ const ProductDetailPage = () => {
         
         <div className="product-info">
           <h1 className="product-name">{product.name}</h1>
-          <p className="product-price">${product.price.toFixed(2)}</p>
+          
+          <div className="product-price-container">
+            {product.onSale && product.salePrice > 0 ? (
+              <>
+                <span className="product-sale-price">${product.salePrice.toFixed(2)}</span>
+                <span className="product-regular-price">${product.price.toFixed(2)}</span>
+              </>
+            ) : (
+              <span className="product-price">${product.price.toFixed(2)}</span>
+            )}
+          </div>
           
           <div className="product-description">
             <p>{product.description}</p>
@@ -122,36 +173,28 @@ const ProductDetailPage = () => {
           
           <div className="product-actions">
             <div className="quantity-selector">
-              <button 
-                className="quantity-btn"
-                onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-              >
-                -
-              </button>
-              <input 
-                type="number" 
-                min="1" 
-                max="10"
+              <label htmlFor="quantity">Quantity:</label>
+              <input
+                type="number"
+                id="quantity"
+                min="1"
+                max={product.stockQuantity > 10 ? 10 : product.stockQuantity || 1}
                 value={quantity}
                 onChange={handleQuantityChange}
+                disabled={!product.isAvailable || product.stockQuantity === 0}
               />
-              <button 
-                className="quantity-btn"
-                onClick={() => quantity < 10 && setQuantity(quantity + 1)}
-              >
-                +
-              </button>
             </div>
             
             <button 
-              className="btn-add-to-cart"
+              className="btn btn-primary btn-add-to-cart"
               onClick={handleAddToCart}
+              disabled={!product.isAvailable || product.stockQuantity === 0}
             >
-              Add to Cart
+              {product.isAvailable ? 'Add to Cart' : 'Out of Stock'}
             </button>
             
             <button 
-              className={`btn-wishlist ${isInWishlist ? 'active' : ''}`}
+              className={`btn btn-wishlist ${isInWishlist ? 'active' : ''}`}
               onClick={handleWishlist}
             >
               {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}

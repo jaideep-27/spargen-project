@@ -9,7 +9,7 @@ exports.getWishlist = async (req, res) => {
     let wishlist = await Wishlist.findOne({ user: req.user._id })
       .populate({
         path: 'products',
-        select: 'name description images price salePrice onSale stockQuantity category'
+        select: 'name description images price salePrice onSale stockQuantity category isAvailable'
       });
       
     if (!wishlist) {
@@ -77,7 +77,7 @@ exports.addToWishlist = async (req, res) => {
     wishlist = await Wishlist.findOne({ user: req.user._id })
       .populate({
         path: 'products',
-        select: 'name description images price salePrice onSale stockQuantity category'
+        select: 'name description images price salePrice onSale stockQuantity category isAvailable'
       });
     
     res.status(200).json({
@@ -122,7 +122,7 @@ exports.removeFromWishlist = async (req, res) => {
     wishlist = await Wishlist.findOne({ user: req.user._id })
       .populate({
         path: 'products',
-        select: 'name description images price salePrice onSale stockQuantity category'
+        select: 'name description images price salePrice onSale stockQuantity category isAvailable'
       });
     
     res.status(200).json({

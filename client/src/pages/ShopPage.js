@@ -3,15 +3,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getProducts } from '../slices/productSlice';
 import ProductGrid from '../components/products/ProductGrid';
 import ProductFilter from '../components/shop/ProductFilter';
-import Loader from '../components/ui/Loader';
 import Alert from '../components/ui/Alert';
 import '../styles/shop.css';
 
 const ShopPage = () => {
   const dispatch = useDispatch();
-  const { products, loading, error } = useSelector((state) => state.product);
+  const { products, loading: productSliceLoading, error } = useSelector((state) => state.product);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [activeFilters, setActiveFilters] = useState({
+    searchTerm: '',
     category: [],
     priceRange: [0, 10000],
     metal: [],
@@ -23,8 +23,20 @@ const ShopPage = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (products && products.length > 0) {
+    if (products) {
       let result = [...products];
+      
+      // Apply search term filter
+      if (activeFilters.searchTerm) {
+        const searchTermLower = activeFilters.searchTerm.toLowerCase();
+        result = result.filter(product => 
+          product.name.toLowerCase().includes(searchTermLower) ||
+          (product.description && product.description.toLowerCase().includes(searchTermLower)) ||
+          product.category.toLowerCase().includes(searchTermLower) ||
+          (product.metal && product.metal.toLowerCase().includes(searchTermLower)) ||
+          (product.gemstones && product.gemstones.some(gem => gem.toLowerCase().includes(searchTermLower)))
+        );
+      }
       
       // Apply category filter
       if (activeFilters.category.length > 0) {
@@ -54,51 +66,42 @@ const ShopPage = () => {
       }
       
       setFilteredProducts(result);
+    } else {
+      setFilteredProducts([]);
     }
   }, [products, activeFilters]);
 
-  const handleFilterChange = (filterType, value) => {
-    setActiveFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
+  const handleFilterApply = (newFilters) => {
+    setActiveFilters(newFilters);
   };
 
-  if (loading) return <Loader />;
-  if (error) return <Alert type="error" message={error} />;
-
   return (
-    <div className="shop-container">
-      <h1 className="shop-title">Our Collection</h1>
-      
-      <div className="shop-content">
-        <aside className="shop-sidebar">
-          <ProductFilter 
-            filters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-        </aside>
-        
-        <main className="shop-products">
-          {filteredProducts.length === 0 ? (
-            <div className="no-products">
-              <p>No products match your selected filters.</p>
-              <button 
-                className="btn-reset-filters"
-                onClick={() => setActiveFilters({
-                  category: [],
-                  priceRange: [0, 10000],
-                  metal: [],
-                  gemstone: []
-                })}
-              >
-                Reset Filters
-              </button>
-            </div>
-          ) : (
-            <ProductGrid products={filteredProducts} />
-          )}
-        </main>
+    <div className="shop-page">
+      <div className="container">
+        <div className="shop-layout">
+          <div className="filter-sidebar">
+            <ProductFilter 
+              activeFilters={activeFilters}
+              onFilterApply={handleFilterApply}
+              minPrice={0} 
+              maxPrice={10000}
+            />
+          </div>
+          <div className="product-listing">
+            {error && <Alert type="error" message={error} />}
+            {!error && (
+              <ProductGrid 
+                products={filteredProducts} 
+                loading={productSliceLoading}
+                error={null}
+                title="All Products" 
+              />
+            )}
+            {(!productSliceLoading && !error && filteredProducts.length === 0 && products && products.length > 0) &&
+              <div className="product-grid-empty"><p>No products found matching your criteria.</p></div>
+            }
+          </div>
+        </div>
       </div>
     </div>
   );

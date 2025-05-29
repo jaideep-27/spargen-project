@@ -4,10 +4,16 @@ import { setFilters, clearFilters } from '../../slices/productSlice';
 import { FaFilter, FaChevronDown, FaTimes } from 'react-icons/fa';
 import '../../styles/ProductFilter.css';
 
+const parsePrice = (value, defaultValue) => {
+  const num = parseFloat(value);
+  return isNaN(num) ? defaultValue : num;
+};
+
 const ProductFilter = ({ onFilterApply }) => {
   const dispatch = useDispatch();
   const { filters } = useSelector((state) => state.product);
   
+  const [searchTerm, setSearchTerm] = useState(filters.searchTerm || '');
   const [category, setCategory] = useState(filters.category || '');
   const [minPrice, setMinPrice] = useState(filters.minPrice || '');
   const [maxPrice, setMaxPrice] = useState(filters.maxPrice || '');
@@ -60,6 +66,7 @@ const ProductFilter = ({ onFilterApply }) => {
   ];
   
   useEffect(() => {
+    setSearchTerm(filters.searchTerm || '');
     setCategory(filters.category || '');
     setMinPrice(filters.minPrice || '');
     setMaxPrice(filters.maxPrice || '');
@@ -69,7 +76,8 @@ const ProductFilter = ({ onFilterApply }) => {
   }, [filters]);
   
   const handleApplyFilters = () => {
-    const newFilters = {
+    const flatFiltersForRedux = {
+      searchTerm,
       category,
       minPrice,
       maxPrice,
@@ -77,17 +85,25 @@ const ProductFilter = ({ onFilterApply }) => {
       gemstone,
       sort,
     };
-    
-    dispatch(setFilters(newFilters));
+    dispatch(setFilters(flatFiltersForRedux));
     
     if (onFilterApply) {
-      onFilterApply(newFilters);
+      const structuredFiltersForShopPage = {
+        searchTerm,
+        category: category ? [category] : [],
+        priceRange: [parsePrice(minPrice, 0), parsePrice(maxPrice, 100000)],
+        metal: metal ? [metal] : [],
+        gemstone: gemstone ? [gemstone] : [],
+        sort,
+      };
+      onFilterApply(structuredFiltersForShopPage);
     }
     
     setMobileFiltersOpen(false);
   };
   
   const handleClearFilters = () => {
+    setSearchTerm('');
     setCategory('');
     setMinPrice('');
     setMaxPrice('');
@@ -98,11 +114,19 @@ const ProductFilter = ({ onFilterApply }) => {
     dispatch(clearFilters());
     
     if (onFilterApply) {
-      onFilterApply({});
+      const structuredClearedFilters = {
+        searchTerm: '',
+        category: [],
+        priceRange: [0, 100000],
+        metal: [],
+        gemstone: [],
+        sort: 'newest',
+      };
+      onFilterApply(structuredClearedFilters);
     }
   };
   
-  const filterActive = category || minPrice || maxPrice || metal || gemstone || sort !== 'newest';
+  const filterActive = searchTerm || category || minPrice || maxPrice || metal || gemstone || sort !== 'newest';
   
   return (
     <div className="product-filter">
@@ -118,10 +142,31 @@ const ProductFilter = ({ onFilterApply }) => {
           className="sort-select-mobile neu-input"
           value={sort}
           onChange={(e) => {
-            setSort(e.target.value);
-            dispatch(setFilters({ ...filters, sort: e.target.value }));
+            const newSortValue = e.target.value;
+            setSort(newSortValue);
+            
+            const flatFiltersForRedux = {
+              ...filters,
+              searchTerm,
+              category,
+              minPrice,
+              maxPrice,
+              metal,
+              gemstone,
+              sort: newSortValue,
+            };
+            dispatch(setFilters(flatFiltersForRedux));
+            
             if (onFilterApply) {
-              onFilterApply({ ...filters, sort: e.target.value });
+              const structuredFiltersForShopPage = {
+                searchTerm,
+                category: category ? [category] : [],
+                priceRange: [parsePrice(minPrice, 0), parsePrice(maxPrice, 100000)],
+                metal: metal ? [metal] : [],
+                gemstone: gemstone ? [gemstone] : [],
+                sort: newSortValue,
+              };
+              onFilterApply(structuredFiltersForShopPage);
             }
           }}
         >
@@ -152,6 +197,17 @@ const ProductFilter = ({ onFilterApply }) => {
           >
             <FaTimes />
           </button>
+        </div>
+        
+        <div className="filter-section">
+          <h4 className="filter-section-title">Search</h4>
+          <input
+            type="text"
+            className="filter-input neu-input"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         
         <div className="filter-section">
@@ -221,7 +277,33 @@ const ProductFilter = ({ onFilterApply }) => {
           <select 
             className="filter-select neu-input"
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => {
+              const newSortValue = e.target.value;
+              setSort(newSortValue);
+              const flatFiltersForRedux = {
+                ...filters,
+                searchTerm,
+                category,
+                minPrice,
+                maxPrice,
+                metal,
+                gemstone,
+                sort: newSortValue,
+              };
+              dispatch(setFilters(flatFiltersForRedux));
+
+              if (onFilterApply) {
+                const structuredFiltersForShopPage = {
+                  searchTerm,
+                  category: category ? [category] : [],
+                  priceRange: [parsePrice(minPrice, 0), parsePrice(maxPrice, 100000)],
+                  metal: metal ? [metal] : [],
+                  gemstone: gemstone ? [gemstone] : [],
+                  sort: newSortValue,
+                };
+                onFilterApply(structuredFiltersForShopPage);
+              }
+            }}
           >
             {sortOptions.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>

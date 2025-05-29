@@ -2,19 +2,41 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { setAlert, setLoading } from './uiSlice';
 
-// Get cart items from localStorage
+// Helper function to transform DB cart items and calculate total
+const transformDbCart = (dbCartData) => {
+  if (!dbCartData || !dbCartData.products) {
+    return { cartItems: [], total: 0 };
+  }
+  const cartItems = dbCartData.products.map(item => ({
+    itemId: item._id, // This is the cart item's ID from the DB
+    product: item.product, // Assuming product is populated with details
+    quantity: item.quantity,
+    price: item.priceAtPurchase || item.product.price, // Use priceAtPurchase if available
+    // Add any other fields CartPage might need directly on the item
+  }));
+  const total = dbCartData.totalPrice || cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  return { cartItems, total };
+};
+
+// Helper function to calculate total for guest cart
+const calculateGuestCartTotal = (cartItems) => {
+  return cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+};
+
+// Get cart items from localStorage (for guest users or initial load before hydration)
 const cartItemsFromStorage = localStorage.getItem('cartItems')
   ? JSON.parse(localStorage.getItem('cartItems'))
   : [];
 
 const initialState = {
-  cartItems: cartItemsFromStorage,
-  dbCart: null,
+  cartItems: cartItemsFromStorage, // For guests, or temp for logged-in until DB cart loads
+  dbCart: null, // Stores the raw cart object from the database
   loading: false,
   error: null,
+  total: cartItemsFromStorage.length > 0 ? calculateGuestCartTotal(cartItemsFromStorage) : 0, // Initial total for guest cart
 };
 
-// Get cart from database (for logged in users)
+// Get cart
 export const getCart = createAsyncThunk(
   'cart/getCart',
   async (_, { dispatch, getState, rejectWithValue }) => {
@@ -24,6 +46,7 @@ export const getCart = createAsyncThunk(
       const { auth } = getState();
       
       if (!auth.userInfo) {
+        dispatch(setLoading(false));
         return null;
       }
       
@@ -49,12 +72,10 @@ export const getCart = createAsyncThunk(
           ? error.response.data.message
           : error.message;
           
-      dispatch(
-        setAlert({
-          type: 'error',
-          message,
-        })
-      );
+      dispatch(setAlert({
+        type: 'error',
+        message,
+      }));
       
       return rejectWithValue(message);
     }
@@ -68,118 +89,89 @@ export const addToCart = createAsyncThunk(
     try {
       dispatch(setLoading(true));
       
-      // First get the product details
-      const { data: productData } = await axios.get(`/api/products/${productId}`);
+      const { auth } = getState();
       
+      if (!auth.userInfo) {
+        dispatch(setLoading(false));
+        dispatch(setAlert({
+          type: 'info',
+          message: 'Please login to add items to your cart'
+        }));
+        return null;
+      }
+      
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.userInfo.token}`,
+        },
+        retry: 3,
+        retryDelay: 1000,
+      };
+
+      // First verify product availability
+      const { data: productData } = await axios.get(`/api/products/${productId}`, config);
       if (!productData.success) {
         throw new Error(productData.message || 'Failed to get product details');
       }
-      
+
       const product = productData.data;
-      
-      // Check if item is in stock
-      if (product.stockQuantity < quantity) {
+      if (!product.isAvailable || product.stockQuantity < quantity) {
         dispatch(setLoading(false));
-        dispatch(
-          setAlert({
-            type: 'error',
-            message: 'Requested quantity not available in stock',
-          })
-        );
-        return rejectWithValue('Not enough stock available');
+        dispatch(setAlert({
+          type: 'error',
+          message: 'Product is not available in the requested quantity'
+        }));
+        return rejectWithValue('Product not available');
       }
-      
-      const { auth } = getState();
-      
-      // If user is logged in, add to DB cart
-      if (auth.userInfo) {
-        const config = {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${auth.userInfo.token}`,
-          },
-        };
 
-        const { data } = await axios.post(
-          '/api/cart',
-          { productId, quantity },
-          config
-        );
+      // Add to cart with retry logic
+      let retries = 0;
+      const maxRetries = 3;
+      const retryDelay = 1000;
+
+      while (retries < maxRetries) {
+        try {
+          const { data } = await axios.post(
+            '/api/cart',
+            { productId, quantity },
+            config
+          );
 
         dispatch(setLoading(false));
-        
-        if (data.success) {
-          dispatch(
-            setAlert({
-              type: 'success',
-              message: 'Item added to cart',
-            })
-          );
           
-          return { dbCart: data.data, product, quantity };
+        if (data.success) {
+            dispatch(setAlert({
+              type: 'success',
+              message: 'Item added to cart successfully'
+            }));
+            return data.data;
         } else {
           throw new Error(data.message || 'Failed to add to cart');
         }
-      } else {
-        // For guest users, use localStorage cart
-        dispatch(setLoading(false));
-        
-        const { cart } = getState();
-        
-        // Check if item already in cart
-        const existItem = cart.cartItems.find((x) => x._id === productId);
-        
-        let newCartItems;
-        
-        if (existItem) {
-          newCartItems = cart.cartItems.map((item) =>
-            item._id === productId
-              ? { ...item, quantity: item.quantity + quantity }
-              : item
-          );
-        } else {
-          const price = product.onSale && product.salePrice > 0 
-            ? product.salePrice 
-            : product.price;
-            
-          newCartItems = [
-            ...cart.cartItems,
-            {
-              _id: product._id,
-              name: product.name,
-              image: product.images[0]?.url || '',
-              price,
-              stockQuantity: product.stockQuantity,
-              quantity,
-            },
-          ];
+        } catch (error) {
+          if (error.response?.status === 429 && retries < maxRetries - 1) {
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, retryDelay * retries));
+            continue;
+          }
+          throw error;
         }
-        
-        localStorage.setItem('cartItems', JSON.stringify(newCartItems));
-        
-        dispatch(
-          setAlert({
-            type: 'success',
-            message: 'Item added to cart',
-          })
-        );
-        
-        return { cartItems: newCartItems };
       }
     } catch (error) {
       dispatch(setLoading(false));
       
-      const message = 
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message;
-          
-      dispatch(
-        setAlert({
-          type: 'error',
-          message,
-        })
-      );
+      let message;
+      if (error.response?.status === 429) {
+        message = 'Too many requests. Please wait a moment and try again.';
+      } else {
+        message = error.response?.data?.message || error.message || 'Failed to add to cart';
+      }
+      
+      dispatch(setAlert({
+        type: 'error',
+        message,
+      }));
       
       return rejectWithValue(message);
     }
@@ -195,48 +187,29 @@ export const updateCartItemQuantity = createAsyncThunk(
       
       const { auth } = getState();
       
-      // If user is logged in, update DB cart
-      if (auth.userInfo) {
+      if (!auth.userInfo) {
+        dispatch(setLoading(false));
+        return null;
+      }
+      
         const config = {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${auth.userInfo.token}`,
-          },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.userInfo.token}`,
+        },
         };
 
-        const { data } = await axios.put(
-          `/api/cart/${itemId}`,
-          { quantity },
-          config
-        );
-
+        const { data } = await axios.put(`/api/cart/${itemId}`, { quantity }, config);
         dispatch(setLoading(false));
-        
+      
         if (data.success) {
-          dispatch(
-            setAlert({
-              type: 'success',
-              message: 'Cart updated',
-            })
-          );
-          
-          return { dbCart: data.data };
-        } else {
-          throw new Error(data.message || 'Failed to update cart');
-        }
+        dispatch(setAlert({
+          type: 'success',
+          message: 'Cart updated'
+        }));
+        return data.data;
       } else {
-        // For guest users, update localStorage cart
-        dispatch(setLoading(false));
-        
-        const { cart } = getState();
-        
-        const newCartItems = cart.cartItems.map((item) =>
-          item._id === productId ? { ...item, quantity } : item
-        );
-        
-        localStorage.setItem('cartItems', JSON.stringify(newCartItems));
-        
-        return { cartItems: newCartItems };
+        throw new Error(data.message || 'Failed to update cart');
       }
     } catch (error) {
       dispatch(setLoading(false));
@@ -246,12 +219,10 @@ export const updateCartItemQuantity = createAsyncThunk(
           ? error.response.data.message
           : error.message;
           
-      dispatch(
-        setAlert({
-          type: 'error',
-          message,
-        })
-      );
+      dispatch(setAlert({
+        type: 'error',
+        message,
+      }));
       
       return rejectWithValue(message);
     }
@@ -261,54 +232,34 @@ export const updateCartItemQuantity = createAsyncThunk(
 // Remove from cart
 export const removeFromCart = createAsyncThunk(
   'cart/removeFromCart',
-  async (productId, { dispatch, getState, rejectWithValue }) => {
+  async ({ itemId }, { dispatch, getState, rejectWithValue }) => { 
     try {
       dispatch(setLoading(true));
       
       const { auth } = getState();
       
-      // If user is logged in, remove from DB cart
-      if (auth.userInfo) {
-        const config = {
-          headers: {
-            Authorization: `Bearer ${auth.userInfo.token}`,
-          },
-        };
-
-        const { data } = await axios.delete(`/api/cart/${productId}`, config);
-
+      if (!auth.userInfo) {
         dispatch(setLoading(false));
-        
+        return null;
+      }
+      
+      const config = {
+        headers: {
+          Authorization: `Bearer ${auth.userInfo.token}`,
+        },
+      };
+
+      const { data } = await axios.delete(`/api/cart/${itemId}`, config);
+      dispatch(setLoading(false));
+      
         if (data.success) {
-          dispatch(
-            setAlert({
-              type: 'success',
-              message: 'Item removed from cart',
-            })
-          );
-          
-          return { dbCart: data.data, productId };
-        } else {
-          throw new Error(data.message || 'Failed to remove from cart');
-        }
+        dispatch(setAlert({
+          type: 'success',
+          message: 'Item removed from cart'
+        }));
+        return data.data;
       } else {
-        // For guest users, remove from localStorage cart
-        dispatch(setLoading(false));
-        
-        const { cart } = getState();
-        
-        const newCartItems = cart.cartItems.filter((item) => item._id !== productId);
-        
-        localStorage.setItem('cartItems', JSON.stringify(newCartItems));
-        
-        dispatch(
-          setAlert({
-            type: 'success',
-            message: 'Item removed from cart',
-          })
-        );
-        
-        return { cartItems: newCartItems, productId };
+        throw new Error(data.message || 'Failed to remove from cart');
       }
     } catch (error) {
       dispatch(setLoading(false));
@@ -318,12 +269,10 @@ export const removeFromCart = createAsyncThunk(
           ? error.response.data.message
           : error.message;
           
-      dispatch(
-        setAlert({
-          type: 'error',
-          message,
-        })
-      );
+      dispatch(setAlert({
+        type: 'error',
+        message,
+      }));
       
       return rejectWithValue(message);
     }
@@ -336,63 +285,29 @@ export const clearCart = createAsyncThunk(
   async (_, { dispatch, getState, rejectWithValue }) => {
     try {
       dispatch(setLoading(true));
-      
       const { auth } = getState();
-      
-      // If user is logged in, clear DB cart
       if (auth.userInfo) {
-        const config = {
-          headers: {
-            Authorization: `Bearer ${auth.userInfo.token}`,
-          },
-        };
-
-        const { data } = await axios.delete('/api/cart', config);
-
+        const config = { headers: { Authorization: `Bearer ${auth.userInfo.token}` } };
+        // API clears entire cart for the user
+        const { data } = await axios.delete('/api/cart/clear', config); 
         dispatch(setLoading(false));
-        
         if (data.success) {
-          dispatch(
-            setAlert({
-              type: 'success',
-              message: 'Cart cleared',
-            })
-          );
-          
-          return { dbCart: data.data };
+          dispatch(setAlert({ type: 'success', message: 'Cart cleared' }));
+          // Expect backend to return an empty cart structure
+          return { updatedCartFromAPI: { products: [], totalPrice: 0 }, isGuest: false }; 
         } else {
           throw new Error(data.message || 'Failed to clear cart');
         }
       } else {
-        // For guest users, clear localStorage cart
-        dispatch(setLoading(false));
-        
         localStorage.removeItem('cartItems');
-        
-        dispatch(
-          setAlert({
-            type: 'success',
-            message: 'Cart cleared',
-          })
-        );
-        
-        return { cartItems: [] };
+        dispatch(setLoading(false));
+        dispatch(setAlert({ type: 'success', message: 'Cart cleared' }));
+        return { cartItems: [], isGuest: true };
       }
     } catch (error) {
       dispatch(setLoading(false));
-      
-      const message = 
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message;
-          
-      dispatch(
-        setAlert({
-          type: 'error',
-          message,
-        })
-      );
-      
+      const message = error.response?.data?.message || error.message;
+      dispatch(setAlert({ type: 'error', message }));
       return rejectWithValue(message);
     }
   }
@@ -404,76 +319,55 @@ export const syncCartWithDatabase = createAsyncThunk(
   async (_, { dispatch, getState, rejectWithValue }) => {
     try {
       dispatch(setLoading(true));
-      
       const { auth, cart } = getState();
-      
-      if (!auth.userInfo || cart.cartItems.length === 0) {
+      if (!auth.userInfo || !cart.cartItems || cart.cartItems.length === 0) {
         dispatch(setLoading(false));
-        return;
+        // If nothing to sync, try to get DB cart in case it has items
+        if (auth.userInfo) {
+            const { data: finalCartData } = await axios.get('/api/cart', {
+                 headers: { Authorization: `Bearer ${auth.userInfo.token}` } 
+            });
+            if (finalCartData.success) {
+                return { dbCartData: finalCartData.data, clearLocal: true, isGuestCart: false };
+            }
+        }
+        return { clearLocal: true, isGuestCart: true }; // Clear local, use potentially empty cart
       }
       
-      // Get DB cart first
-      const { data: dbCartData } = await axios.get('/api/cart', {
-        headers: {
-          Authorization: `Bearer ${auth.userInfo.token}`,
-        },
-      });
-      
-      if (!dbCartData.success) {
-        throw new Error(dbCartData.message || 'Failed to get cart');
-      }
-      
-      // Add local cart items to DB cart one by one
-      for (const item of cart.cartItems) {
+      // Sync items: Add each local item to DB. Backend should handle duplicates (e.g., update quantity).
+      for (const localItem of cart.cartItems) {
+        const productDetails = localItem.product || localItem; // Handle both structures
         try {
           await axios.post(
             '/api/cart',
-            { productId: item._id, quantity: item.quantity },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${auth.userInfo.token}`,
-              },
-            }
+            { productId: productDetails._id, quantity: localItem.quantity },
+            { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.userInfo.token}` } }
           );
-        } catch (error) {
-          console.error('Failed to add item to DB cart:', error);
-          // Continue with next item
+        } catch (syncError) {
+          console.error('Failed to sync item to DB cart:', productDetails.name, syncError);
+          // Optionally dispatch an alert for per-item sync failure
         }
       }
       
-      // Get updated cart from DB
-      const { data } = await axios.get('/api/cart', {
-        headers: {
-          Authorization: `Bearer ${auth.userInfo.token}`,
-        },
+      // After attempting to sync all items, fetch the definitive DB cart
+      const { data: finalCartData } = await axios.get('/api/cart', {
+        headers: { Authorization: `Bearer ${auth.userInfo.token}` },
       });
       
-      // Clear local storage cart
-      localStorage.removeItem('cartItems');
-      
+      localStorage.removeItem('cartItems'); // Clear local cart after sync attempt
       dispatch(setLoading(false));
       
-      if (data.success) {
-        return { dbCart: data.data, cartItems: [] };
+      if (finalCartData.success) {
+        dispatch(setAlert({ type: 'success', message: 'Cart synced with your account' }));
+        return { dbCartData: finalCartData.data, clearLocal: true, isGuestCart: false };
       } else {
-        throw new Error(data.message || 'Failed to sync cart');
+        throw new Error(finalCartData.message || 'Failed to fetch synced cart');
       }
     } catch (error) {
       dispatch(setLoading(false));
-      
-      const message = 
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message;
-          
-      dispatch(
-        setAlert({
-          type: 'error',
-          message,
-        })
-      );
-      
+      const message = error.response?.data?.message || error.message;
+      dispatch(setAlert({ type: 'error', message: `Cart sync failed: ${message}` }));
+      // Fallback: might leave user with local cart or try to fetch DB cart again
       return rejectWithValue(message);
     }
   }
@@ -488,11 +382,89 @@ const cartSlice = createSlice({
       state.dbCart = null;
       state.error = null;
       state.loading = false;
+      state.total = 0;
       localStorage.removeItem('cartItems');
     },
+    // This action could be used if a component needs to manually trigger re-derivation
+    // of cartItems from dbCart, e.g. if dbCart is updated by a pusher event.
+    _deriveCartItemsFromDb: (state) => {
+        if (state.dbCart) {
+            const { cartItems, total } = transformDbCart(state.dbCart);
+            state.cartItems = cartItems;
+            state.total = total;
+        }
+    }
   },
   extraReducers: (builder) => {
     builder
+      .addCase(getCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload) {
+          state.cartItems = action.payload.items || [];
+          state.total = action.payload.totalPrice || 0;
+        }
+      })
+      .addCase(addToCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload) {
+          state.cartItems = action.payload.items || [];
+          state.total = action.payload.totalPrice || 0;
+        }
+      })
+      .addCase(updateCartItemQuantity.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload) {
+          state.cartItems = action.payload.items || [];
+          state.total = action.payload.totalPrice || 0;
+        }
+      })
+      .addCase(removeFromCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload) {
+          state.cartItems = action.payload.items || [];
+          state.total = action.payload.totalPrice || 0;
+        }
+      })
+      .addCase(clearCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload.isGuest) {
+          state.cartItems = [];
+          state.total = 0;
+        } else if (action.payload.updatedCartFromAPI) {
+          state.dbCart = action.payload.updatedCartFromAPI; // Should be an empty cart
+          const { cartItems, total } = transformDbCart(state.dbCart);
+          state.cartItems = cartItems; // Should be []
+          state.total = total; // Should be 0
+        }
+      })
+      .addCase(syncCartWithDatabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        if (action.payload.dbCartData) {
+          state.dbCart = action.payload.dbCartData;
+          const { cartItems, total } = transformDbCart(state.dbCart);
+          state.cartItems = cartItems;
+          state.total = total;
+        } else if (action.payload.clearLocal && action.payload.isGuestCart) {
+            // This case means user logged in, had no local items OR sync failed but we fallback to empty/guest
+            state.cartItems = [];
+            state.total = 0;
+        }
+        if (action.payload.clearLocal) {
+            localStorage.removeItem('cartItems'); // Ensure it's cleared
+        }
+      })
+      .addCase('auth/logoutUser/fulfilled', (state) => {
+        state.dbCart = null;
+        state.cartItems = [];
+        state.total = 0;
+        localStorage.removeItem('cartItems');
+      })
       .addMatcher(
         (action) => action.type.startsWith('cart/') && action.type.endsWith('/pending'),
         (state) => {
@@ -506,65 +478,10 @@ const cartSlice = createSlice({
           state.loading = false;
           state.error = action.payload;
         }
-      )
-      .addCase(getCart.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload) {
-          state.dbCart = action.payload;
-        }
-        state.error = null;
-      })
-      .addCase(addToCart.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.dbCart) {
-          state.dbCart = action.payload.dbCart;
-        } else if (action.payload.cartItems) {
-          state.cartItems = action.payload.cartItems;
-        }
-        state.error = null;
-      })
-      .addCase(updateCartItemQuantity.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.dbCart) {
-          state.dbCart = action.payload.dbCart;
-        } else if (action.payload.cartItems) {
-          state.cartItems = action.payload.cartItems;
-        }
-        state.error = null;
-      })
-      .addCase(removeFromCart.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.dbCart) {
-          state.dbCart = action.payload.dbCart;
-        } else if (action.payload.cartItems) {
-          state.cartItems = action.payload.cartItems;
-        }
-        state.error = null;
-      })
-      .addCase(clearCart.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.dbCart) {
-          state.dbCart = action.payload.dbCart;
-        }
-        state.cartItems = [];
-        state.error = null;
-      })
-      .addCase(syncCartWithDatabase.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload) {
-          if (action.payload.dbCart) {
-            state.dbCart = action.payload.dbCart;
-          }
-          state.cartItems = action.payload.cartItems !== undefined ? action.payload.cartItems : [];
-        }
-        state.error = null;
-      })
-      .addCase('auth/logout/fulfilled', (state) => {
-        state.dbCart = null;
-      });
+      );
   },
 });
 
-export const { resetCart } = cartSlice.actions;
+export const { resetCart, _deriveCartItemsFromDb } = cartSlice.actions;
 
 export default cartSlice.reducer; 

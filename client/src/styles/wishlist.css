@@ -1,20 +1,20 @@
 .wishlist-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 30px 15px;
-  font-family: var(--font-primary);
+  padding: var(--spacing-lg);
+  font-family: var(--font-family-sans);
 }
 
 .wishlist-title {
-  font-size: 28px;
-  margin-bottom: 30px;
-  color: var(--color-text);
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-color);
   text-align: center;
-  font-weight: 300;
+  font-weight: var(--font-weight-light);
   letter-spacing: 1.5px;
-  font-family: var(--font-primary);
+  font-family: var(--font-family);
   position: relative;
-  padding-bottom: 15px;
+  padding-bottom: var(--spacing-md);
 }
 
 .wishlist-title:after {
@@ -25,185 +25,186 @@
   transform: translateX(-50%);
   width: 60px;
   height: 2px;
-  background-color: var(--color-gold);
+  background-color: var(--primary-color);
 }
 
 .empty-wishlist {
   text-align: center;
-  padding: 50px 0;
+  padding: var(--spacing-xxl) 0;
 }
 
 .empty-wishlist p {
-  font-size: 16px;
-  margin-bottom: 25px;
-  color: var(--color-text-light);
-  font-family: var(--font-primary);
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-light);
 }
 
 .btn-continue-shopping {
   display: inline-block;
-  padding: 12px 24px;
-  background-color: #000;
-  color: #fff;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--primary-color);
+  color: white;
   text-decoration: none;
-  font-weight: 400;
-  transition: all 0.3s ease;
+  font-weight: var(--font-weight-medium);
+  transition: background-color var(--transition-fast);
   border: none;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   letter-spacing: 1px;
   text-transform: uppercase;
-  font-family: var(--font-primary);
+  border-radius: var(--border-radius-small);
 }
 
 .btn-continue-shopping:hover {
-  background-color: var(--color-gold);
+  background-color: var(--accent-color);
 }
 
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-md);
 }
 
 .wishlist-item {
   position: relative;
-  background-color: var(--color-background);
+  background-color: transparent;
+  border-radius: var(--border-radius-small);
   overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: none;
-  border: none;
+  transition: transform var(--transition-normal);
 }
 
 .wishlist-item:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.item-image-link {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  overflow: hidden;
+}
+
+.item-image-link img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.wishlist-item:hover .item-image-link img {
+  transform: scale(1.05);
 }
 
 .btn-remove-item {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(255, 255, 255, 0.8);
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.6);
   border: none;
-  color: #ff4d4f;
-  font-size: 18px;
-  width: 30px;
-  height: 30px;
-  border-radius: 0;
+  color: white;
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
+  opacity: 0;
+  transition: all var(--transition-fast);
   z-index: 10;
 }
 
-.btn-remove-item:hover {
+.wishlist-item:hover .btn-remove-item {
   opacity: 1;
 }
 
-.item-image {
-  display: block;
-  width: 100%;
-  height: 280px;
-  overflow: hidden;
-}
-
-.item-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-
-.wishlist-item:hover .item-image img {
-  transform: scale(1.04);
+.btn-remove-item:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
 }
 
 .item-details {
-  padding: 15px 10px;
+  padding: var(--spacing-md);
   text-align: center;
 }
 
 .item-name {
-  font-size: 14px;
-  font-weight: 400;
-  margin: 0 0 8px 0;
-  letter-spacing: 0.5px;
-  font-family: var(--font-primary);
-  line-height: 1.4;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  margin: 0 0 var(--spacing-sm) 0;
+  line-height: 1.3;
 }
 
 .item-name a {
-  color: var(--color-text);
+  color: var(--text-color);
   text-decoration: none;
-  transition: color 0.3s;
+  transition: color var(--transition-fast);
 }
 
 .item-name a:hover {
-  color: var(--color-gold);
+  color: var(--primary-color);
 }
 
 .item-price {
-  color: var(--color-gold);
-  font-weight: 500;
-  margin: 0 0 10px 0;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  font-family: var(--font-primary);
+  color: var(--text-color);
+  font-weight: var(--font-weight-medium);
+  margin: var(--spacing-sm) 0;
+  font-size: var(--font-size-md);
 }
 
 .item-meta {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  font-size: 11px;
   justify-content: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-xs);
 }
 
 .item-category, .item-metal {
-  background-color: var(--color-background-alt);
-  padding: 4px 8px;
-  color: var(--color-text-light);
+  color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-family: var(--font-primary);
 }
 
 .btn-add-to-cart {
   width: 100%;
-  padding: 10px 15px;
-  border: none;
-  background-color: #000;
-  color: white;
-  font-size: 11px;
-  font-weight: 400;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--primary-color);
+  background-color: transparent;
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast);
   letter-spacing: 1px;
   text-transform: uppercase;
-  font-family: var(--font-primary);
+  border-radius: var(--border-radius-small);
 }
 
 .btn-add-to-cart:hover {
-  background-color: var(--color-gold);
+  background-color: var(--primary-color);
+  color: white;
 }
 
 @media (max-width: 991px) {
   .wishlist-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    gap: var(--spacing-md);
   }
 }
 
 @media (max-width: 768px) {
   .wishlist-title {
-    font-size: 24px;
-    margin-bottom: 25px;
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-lg);
   }
   
-  .item-image {
+  .item-image-link {
     height: 240px;
   }
 }
@@ -211,15 +212,16 @@
 @media (max-width: 576px) {
   .wishlist-grid {
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: var(--spacing-md);
+    padding: 0;
   }
   
-  .item-image {
+  .item-image-link {
     height: 280px;
   }
   
   .item-details {
-    padding: 15px 10px;
+    padding: var(--spacing-sm);
   }
   
   .item-meta {
@@ -228,25 +230,64 @@
   }
 }
 
-/* Dark mode */
+/* Remove the specific prefers-color-scheme: dark block if relying on data-theme attribute */
+/* OR, ensure it aligns perfectly with how [data-theme="dark"] variables are set in main.css */
+
+/* For example, if .item-category needs a specific dark mode adjustment not covered by its vars: */
+/* 
+[data-theme="dark"] .item-category,
+[data-theme="dark"] .item-metal {
+  background-color: var(--surface-color); 
+  border: 1px solid var(--border-color);
+}
+*/
+
+/* The primary method for dark theme should be the data-theme="dark" attribute 
+   set on the html/document element, which changes the CSS variable values. 
+   The existing variable usage in .wishlist-item, .item-details etc. should then 
+   automatically pick up the dark theme colors. 
+   The specific @media (prefers-color-scheme: dark) block below might be redundant 
+   or could conflict. It's better to rely on data-theme for consistency. 
+   I will comment it out for now, assuming main.css correctly defines dark theme variables.
+*/
+
+/* 
 @media (prefers-color-scheme: dark) {
   .wishlist-title {
-    color: #f5f5f5;
+    color: var(--text-color); // Should use theme variable already
   }
   
   .item-name a {
-    color: #f5f5f5;
+    color: var(--text-color); // Should use theme variable already
   }
   
-  .btn-add-to-cart {
-    background-color: var(--color-gold);
-  }
-  
-  .btn-add-to-cart:hover {
-    background-color: #c89355;
-  }
+  // .btn-add-to-cart in dark mode might need specific overrides 
+  // if its light theme style (transparent bg, primary border/text) doesn't look good on dark surface
+  // However, the current .btn-add-to-cart:hover (primary bg, white text) would likely work well.
   
   .item-category, .item-metal {
-    background-color: rgba(255, 255, 255, 0.1);
+    // background-color: rgba(255, 255, 255, 0.1); // Previous dark mode specific
+    // Now uses var(--background-color) which will be dark in dark theme.
+    // If a different shade is needed from the main dark background, define a new variable or adjust here.
   }
+} 
+*/
+
+.loading {
+  text-align: center;
+  padding: var(--spacing-xxl) 0;
+  color: var(--text-light);
+  font-size: var(--font-size-lg);
+}
+
+.sale-price {
+  color: var(--primary-color);
+  font-weight: var(--font-weight-bold);
+  margin-right: var(--spacing-sm);
+}
+
+.original-price {
+  color: var(--text-light);
+  text-decoration: line-through;
+  font-size: 0.9em;
 } 

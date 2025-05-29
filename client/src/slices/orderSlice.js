@@ -409,26 +409,6 @@ const orderSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addMatcher(
-        (action) => 
-          action.type.startsWith('order/') && 
-          action.type.endsWith('/pending') &&
-          action.type !== 'order/createOrder/pending',
-        (state) => {
-          state.loading = true;
-          state.error = null;
-        }
-      )
-      .addMatcher(
-        (action) => 
-          action.type.startsWith('order/') && 
-          action.type.endsWith('/rejected') &&
-          action.type !== 'order/createOrder/rejected',
-        (state, action) => {
-          state.loading = false;
-          state.error = action.payload;
-        }
-      )
       .addCase(createOrder.pending, (state) => {
         state.loading = true;
         state.success = false;
@@ -501,7 +481,27 @@ const orderSlice = createSlice({
         state.error = null;
         localStorage.removeItem('shippingAddress');
         localStorage.removeItem('paymentMethod');
-      });
+      })
+      .addMatcher(
+        (action) => 
+          action.type.startsWith('order/') && 
+          action.type.endsWith('/pending') &&
+          action.type !== 'order/createOrder/pending',
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => 
+          action.type.startsWith('order/') && 
+          action.type.endsWith('/rejected') &&
+          action.type !== 'order/createOrder/rejected',
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      );
   },
 });
 

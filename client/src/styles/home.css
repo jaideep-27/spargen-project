@@ -1,0 +1,23 @@
+.benefit-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  background-color: var(--background-color-light);
+  border-radius: 50%;
+  box-shadow: var(--neu-shadow-small);
+  padding: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.benefit-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.benefit-card:hover .benefit-icon {
+  transform: translateY(-5px);
+} 

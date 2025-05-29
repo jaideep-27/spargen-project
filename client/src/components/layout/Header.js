@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { FaSearch, FaShoppingCart, FaUser, FaHeart, FaMoon, FaSun } from 'react-icons/fa';
 import { toggleTheme } from '../../slices/uiSlice';
 import { logout } from '../../slices/authSlice';
+import { setFilters } from '../../slices/productSlice';
 import '../../styles/Header.css';
 
 const Header = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { theme } = useSelector((state) => state.ui);
   const { userInfo } = useSelector((state) => state.auth);
   const { cartItems } = useSelector((state) => state.cart);
@@ -29,9 +31,10 @@ const Header = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Redirect to search results page
     if (searchQuery.trim()) {
-      window.location.href = `/search?query=${searchQuery}`;
+      dispatch(setFilters({ searchTerm: searchQuery, category: '', minPrice: '', maxPrice: '', metal: '', gemstone: '', sort: 'newest' }));
+      navigate('/shop');
+      setSearchQuery('');
     }
   };
 
@@ -49,7 +52,7 @@ const Header = () => {
         <div className="header-content">
           <div className="logo-container">
             <Link to="/" className="logo">
-              GlimmerGem
+              Swarnika
             </Link>
           </div>
 

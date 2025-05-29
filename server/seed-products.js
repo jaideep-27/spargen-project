@@ -11,7 +11,7 @@ const products = [
     onSale: true,
     images: [
       {
-        url: "/assets/products/jewel1.avif",
+        url: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=3270&auto=format&fit=crop",
         altText: "Diamond Eternity Ring"
       }
     ],
@@ -28,21 +28,25 @@ const products = [
     features: ["18k white gold", "15 round brilliant diamonds", "Total carat weight: 1.5ct", "Clarity: VS1", "Color: G"],
     careInstructions: "Clean with mild soap and water. Store in a jewelry box when not wearing.",
     warrantyInfo: "Lifetime warranty against manufacturing defects.",
-    tags: ["diamond", "eternity", "ring", "anniversary", "wedding"]
+    tags: ["diamond", "eternity", "ring", "anniversary", "wedding"],
+    rating: {
+      average: 4.8,
+      count: 45
+    }
   },
   {
     name: "Sapphire and Diamond Pendant",
     description: "Elegant pendant featuring a 2ct oval blue sapphire surrounded by a halo of round diamonds, on an 18k white gold chain.",
     price: 1899.99,
-    salePrice: 0,
-    onSale: false,
+    salePrice: 1599.99,
+    onSale: true,
     images: [
       {
-        url: "/assets/products/jewel3.jpg",
+        url: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=3087&auto=format&fit=crop",
         altText: "Sapphire and Diamond Pendant"
       }
     ],
-    category: "pendant",
+    category: "necklace",
     metal: "white gold",
     gemstone: "sapphire",
     weight: 5.2,
@@ -55,7 +59,11 @@ const products = [
     features: ["2ct oval blue sapphire", "0.5ct total diamond weight", "18k white gold chain", "Adjustable length: 16-18 inches"],
     careInstructions: "Avoid contact with harsh chemicals. Clean with a soft jewelry cloth.",
     warrantyInfo: "1-year warranty against manufacturing defects.",
-    tags: ["sapphire", "pendant", "necklace", "diamond", "gift"]
+    tags: ["sapphire", "pendant", "necklace", "diamond", "gift"],
+    rating: {
+      average: 4.9,
+      count: 32
+    }
   },
   {
     name: "Rose Gold Pearl Earrings",
@@ -65,7 +73,7 @@ const products = [
     onSale: true,
     images: [
       {
-        url: "/assets/products/jewel4.jpg",
+        url: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=3270&auto=format&fit=crop",
         altText: "Rose Gold Pearl Earrings"
       }
     ],
@@ -82,17 +90,21 @@ const products = [
     features: ["14k rose gold", "8mm freshwater pearls", "Comfort-fit posts", "Butterfly backs"],
     careInstructions: "Wipe with a soft cloth after wearing. Store in a cool, dry place.",
     warrantyInfo: "6-month warranty against manufacturing defects.",
-    tags: ["pearl", "earrings", "rose gold", "elegant", "gift for her"]
+    tags: ["pearl", "earrings", "rose gold", "elegant", "gift for her"],
+    rating: {
+      average: 4.7,
+      count: 28
+    }
   },
   {
     name: "Emerald Tennis Bracelet",
     description: "Stunning tennis bracelet featuring 25 emerald-cut emeralds set in 18k yellow gold with secure box clasp and safety catch.",
     price: 3599.99,
-    salePrice: 0,
-    onSale: false,
+    salePrice: 2999.99,
+    onSale: true,
     images: [
       {
-        url: "/assets/products/jewel5.jpg",
+        url: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=3270&auto=format&fit=crop",
         altText: "Emerald Tennis Bracelet"
       }
     ],
@@ -109,7 +121,11 @@ const products = [
     features: ["18k yellow gold", "25 emerald-cut natural emeralds", "Total emerald weight: 5ct", "Box clasp with safety catch", "7 inches long"],
     careInstructions: "Avoid exposure to harsh chemicals. Clean with a soft brush and mild soap.",
     warrantyInfo: "2-year warranty and complimentary annual cleaning service.",
-    tags: ["emerald", "bracelet", "tennis bracelet", "luxury", "statement piece"]
+    tags: ["emerald", "bracelet", "tennis bracelet", "luxury", "statement piece"],
+    rating: {
+      average: 4.9,
+      count: 15
+    }
   },
   {
     name: "Vintage Ruby Cocktail Ring",
@@ -119,7 +135,7 @@ const products = [
     onSale: true,
     images: [
       {
-        url: "/assets/products/jewel6.jpg",
+        url: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=3270&auto=format&fit=crop",
         altText: "Vintage Ruby Cocktail Ring"
       }
     ],
@@ -136,17 +152,21 @@ const products = [
     features: ["Platinum setting", "3ct oval natural ruby", "0.75ct total diamond weight", "Vintage-inspired milgrain detailing", "Size 7 (resizable)"],
     careInstructions: "Clean with mild soap and water. Avoid ultrasonic cleaners.",
     warrantyInfo: "Lifetime warranty against manufacturing defects.",
-    tags: ["ruby", "cocktail ring", "vintage", "statement", "platinum"]
+    tags: ["ruby", "cocktail ring", "vintage", "statement", "platinum"],
+    rating: {
+      average: 4.8,
+      count: 23
+    }
   },
   {
     name: "Diamond Stud Earrings",
     description: "Classic diamond stud earrings featuring round brilliant cut diamonds in a four-prong setting of 14k white gold.",
     price: 999.99,
-    salePrice: 0,
-    onSale: false,
+    salePrice: 849.99,
+    onSale: true,
     images: [
       {
-        url: "/assets/products/jewel7.jpg",
+        url: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=3270&auto=format&fit=crop",
         altText: "Diamond Stud Earrings"
       }
     ],
@@ -163,7 +183,11 @@ const products = [
     features: ["14k white gold", "Round brilliant cut diamonds", "Total carat weight: 1.0ct", "Clarity: VS2", "Color: H", "Screw back for security"],
     careInstructions: "Clean regularly with jewelry cleaner solution. Store in a jewelry box.",
     warrantyInfo: "Lifetime warranty against manufacturing defects.",
-    tags: ["diamond", "studs", "earrings", "classic", "gift"]
+    tags: ["diamond", "studs", "earrings", "classic", "gift"],
+    rating: {
+      average: 4.9,
+      count: 56
+    }
   },
   {
     name: "Gold Chain Necklace",
@@ -173,7 +197,7 @@ const products = [
     onSale: true,
     images: [
       {
-        url: "/assets/products/jewel8.jpg",
+        url: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=3087&auto=format&fit=crop",
         altText: "Gold Chain Necklace"
       }
     ],
@@ -187,17 +211,20 @@ const products = [
       height: 3
     },
     stockQuantity: 8,
-    features: ["18k gold", "Lobster clasp", "20 inches long", "Modern chain design", "Suitable for everyday wear"],
-    careInstructions: "Clean with mild soap and water. Polish with a gold polishing cloth.",
-    warrantyInfo: "1-year warranty against manufacturing defects.",
-    tags: ["gold", "chain", "necklace", "modern", "versatile"]
+    features: ["18k gold", "Adjustable length: 18-20 inches", "Lobster clasp", "2.5mm width"],
+    careInstructions: "Clean with a polishing cloth. Store in a jewelry box.",
+    warrantyInfo: "Lifetime warranty against manufacturing defects.",
+    tags: ["gold", "chain", "necklace", "classic", "layering"],
+    rating: {
+      average: 4.7,
+      count: 38
+    }
   }
 ];
 
 const seedProducts = async () => {
   try {
-    // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://amarabadjayadeep:sj986625@cluster0.uuwpnzu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB Connected');
     
     // Delete existing products
@@ -209,9 +236,9 @@ const seedProducts = async () => {
     console.log(`${createdProducts.length} products created`);
     
     console.log('Database seeded successfully!');
-    process.exit(0);
+    process.exit();
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    console.error('Error seeding database:', error);
     process.exit(1);
   }
 };

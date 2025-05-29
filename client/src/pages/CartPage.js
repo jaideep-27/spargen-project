@@ -2,14 +2,13 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCart, updateCartItemQuantity, removeFromCart } from '../slices/cartSlice';
-import Loader from '../components/ui/Loader';
 import Alert from '../components/ui/Alert';
 import '../styles/cart.css';
 
 const CartPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { cartItems, loading, error, total } = useSelector((state) => state.cart);
+  const { cartItems = [], loading, error, total } = useSelector((state) => state.cart);
   const { isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -21,21 +20,31 @@ const CartPage = () => {
   }, [dispatch, isAuthenticated, navigate]);
 
   const handleQuantityChange = (productId, quantity) => {
-    if (quantity > 0 && quantity <= 10) {
-      dispatch(updateCartItemQuantity({ productId, quantity }));
+    const item = cartItems.find(ci => (ci.product?._id || ci._id) === productId);
+    if (item) {
+        dispatch(updateCartItemQuantity({ 
+            productId,
+            quantity, 
+            itemId: item.itemId || item._id
+        }));
     }
   };
 
   const handleRemoveItem = (productId) => {
-    dispatch(removeFromCart(productId));
+    const item = cartItems.find(ci => (ci.product?._id || ci._id) === productId);
+    if (item) {
+        dispatch(removeFromCart({ 
+            productId, 
+            itemId: item.itemId || item._id
+        }));
+    }
   };
 
   const handleCheckout = () => {
     navigate('/checkout');
   };
 
-  if (loading) return <Loader />;
-  if (error) return <Alert type="error" message={error} />;
+  if (error && !loading) return <Alert type="error" message={error} />;
   
   return (
     <div className="cart-container">
@@ -51,59 +60,62 @@ const CartPage = () => {
       ) : (
         <div className="cart-content">
           <div className="cart-items">
-            {cartItems.map((item) => (
-              <div key={item.product._id} className="cart-item">
-                <div className="item-image">
-                  <img 
-                    src={item.product.images[0]} 
-                    alt={item.product.name}
-                  />
-                </div>
-                
-                <div className="item-details">
-                  <h3 className="item-name">
-                    <Link to={`/product/${item.product._id}`}>
-                      {item.product.name}
-                    </Link>
-                  </h3>
+            {cartItems.map((item) => {
+              const product = item.product || item;
+              const imageUrl = product.images && product.images.length > 0 ? product.images[0].url || product.images[0] : (product.image || 'placeholder.jpg');
+
+              return (
+                <div key={product._id} className="cart-item">
+                  <div className="item-image">
+                    <img 
+                      src={imageUrl} 
+                      alt={product.name}
+                    />
+                  </div>
                   
-                  <p className="item-price">${item.product.price.toFixed(2)}</p>
+                  <div className="item-details">
+                    <h3 className="item-name">
+                      <Link to={`/product/${product._id}`}>
+                        {product.name}
+                      </Link>
+                    </h3>
+                    <p className="item-price">${product.price.toFixed(2)}</p>
+                    {product.metal && (
+                      <p className="item-meta">Metal: {product.metal}</p>
+                    )}
+                  </div>
                   
-                  {item.product.metal && (
-                    <p className="item-meta">Metal: {item.product.metal}</p>
-                  )}
-                </div>
-                
-                <div className="item-quantity">
+                  <div className="item-quantity">
+                    <button 
+                      className="quantity-btn"
+                      onClick={() => handleQuantityChange(product._id, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      -
+                    </button>
+                    <span className="quantity-value">{item.quantity}</span>
+                    <button 
+                      className="quantity-btn"
+                      onClick={() => handleQuantityChange(product._id, item.quantity + 1)}
+                      disabled={item.quantity >= 10}
+                    >
+                      +
+                    </button>
+                  </div>
+                  
+                  <div className="item-subtotal">
+                    ${(product.price * item.quantity).toFixed(2)}
+                  </div>
+                  
                   <button 
-                    className="quantity-btn"
-                    onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
-                    disabled={item.quantity <= 1}
+                    className="btn-remove-item"
+                    onClick={() => handleRemoveItem(product._id)}
                   >
-                    -
-                  </button>
-                  <span className="quantity-value">{item.quantity}</span>
-                  <button 
-                    className="quantity-btn"
-                    onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
-                    disabled={item.quantity >= 10}
-                  >
-                    +
+                    &times;
                   </button>
                 </div>
-                
-                <div className="item-subtotal">
-                  ${(item.product.price * item.quantity).toFixed(2)}
-                </div>
-                
-                <button 
-                  className="btn-remove-item"
-                  onClick={() => handleRemoveItem(item.product._id)}
-                >
-                  &times;
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           <div className="cart-summary">
@@ -111,7 +123,7 @@ const CartPage = () => {
             
             <div className="summary-row">
               <span>Subtotal:</span>
-              <span>${total.toFixed(2)}</span>
+              <span>${typeof total === 'number' ? total.toFixed(2) : '0.00'}</span>
             </div>
             
             <div className="summary-row">
@@ -121,12 +133,13 @@ const CartPage = () => {
             
             <div className="summary-row total">
               <span>Total:</span>
-              <span>${total.toFixed(2)}</span>
+              <span>${typeof total === 'number' ? total.toFixed(2) : '0.00'}</span>
             </div>
             
             <button 
               className="btn-checkout"
               onClick={handleCheckout}
+              disabled={cartItems.length === 0}
             >
               Proceed to Checkout
             </button>

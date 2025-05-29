@@ -1,29 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaFacebook, FaTwitter, FaInstagram, FaPinterest, FaEnvelope } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaPinterest, FaPaypal, FaCcStripe, FaCcVisa, FaCcMastercard } from 'react-icons/fa';
+import { SiRazorpay, SiPaytm } from 'react-icons/si';
 import '../../styles/Footer.css';
 
 const Footer = () => {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (email.trim() && email.includes('@')) {
-      // TODO: Implement newsletter API call
-      console.log('Subscribe with:', email);
-      setSubscribed(true);
-      setEmail('');
-      setTimeout(() => setSubscribed(false), 3000);
-    }
-  };
-
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer-top">
           <div className="footer-column">
-            <h3 className="footer-title">GlimmerGem</h3>
+            <h3 className="footer-title">Swarnika</h3>
             <p className="footer-description">
               Exquisite handcrafted jewelry for every occasion.
               From timeless classics to modern designs.
@@ -67,39 +54,21 @@ const Footer = () => {
               <li><Link to="/terms">Terms & Conditions</Link></li>
             </ul>
           </div>
-
-          <div className="footer-column">
-            <h3 className="footer-title">Newsletter</h3>
-            <p className="newsletter-text">
-              Subscribe to our newsletter for exclusive offers and updates.
-            </p>
-            <form onSubmit={handleSubscribe} className="newsletter-form">
-              <div className="newsletter-input-group">
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  className="newsletter-input neu-input"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <button type="submit" className="newsletter-button neu-button">
-                  <FaEnvelope />
-                </button>
-              </div>
-              {subscribed && (
-                <p className="newsletter-success">Thank you for subscribing!</p>
-              )}
-            </form>
-          </div>
         </div>
 
         <div className="footer-bottom">
           <div className="payment-methods">
-            <img src="/payment-methods.png" alt="Payment methods" />
+            <div className="payment-icons">
+              <FaPaypal className="payment-icon" title="PayPal" />
+              <FaCcStripe className="payment-icon" title="Stripe" />
+              <SiRazorpay className="payment-icon" title="Razorpay" />
+              <SiPaytm className="payment-icon" title="Paytm" />
+              <FaCcVisa className="payment-icon" title="Visa" />
+              <FaCcMastercard className="payment-icon" title="Mastercard" />
+            </div>
           </div>
           <p className="copyright">
-            &copy; {new Date().getFullYear()} GlimmerGem. All rights reserved.
+            &copy; {new Date().getFullYear()} Swarnika. All rights reserved.
           </p>
         </div>
       </div>

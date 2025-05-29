@@ -5,6 +5,8 @@ import { getCart, syncCartWithDatabase } from './slices/cartSlice';
 import { getWishlist } from './slices/wishlistSlice';
 import { getUserProfile } from './slices/authSlice';
 import Layout from './components/layout/Layout';
+// import Loader from './components/ui/Loader'; // Loader component no longer used here
+import ScrollToTop from './utils/ScrollToTop';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import ProductDetailPage from './pages/ProductDetailPage';
@@ -24,6 +26,7 @@ function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const userInfo = useSelector((state) => state.auth.userInfo);
   const prevUserInfo = React.useRef(userInfo);
+  // const isLoading = useSelector((state) => state.ui.loading); // isLoading no longer directly used for a Loader here
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -44,7 +47,9 @@ function App() {
   
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Layout>
+        {/* <Loader center={true} isActive={isLoading} size="small" /> */}{/* Removed Loader */}
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />

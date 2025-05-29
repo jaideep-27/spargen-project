@@ -6,7 +6,7 @@ const { processProductImages, processProductsImages } = require('../utils/imageU
 // @access  Public
 exports.getProducts = async (req, res) => {
   try {
-    const pageSize = 12;
+    const pageSize = req.query.limit ? Number(req.query.limit) : 12;
     const page = Number(req.query.page) || 1;
     
     // Build query based on filters
@@ -39,6 +39,16 @@ exports.getProducts = async (req, res) => {
       query.gemstone = req.query.gemstone;
     }
     
+    // Rating filter
+    if (req.query.minRating) {
+      query['rating.average'] = { $gte: Number(req.query.minRating) };
+    }
+    
+    // Sale filter
+    if (req.query.onSale === 'true') {
+      query.onSale = true;
+    }
+    
     // Search filter
     if (req.query.search) {
       query.$or = [
@@ -65,7 +75,7 @@ exports.getProducts = async (req, res) => {
           sortOptions = { createdAt: -1 };
           break;
         case 'best-rated':
-          sortOptions = { 'rating.average': -1 };
+          sortOptions = { 'rating.average': -1, createdAt: -1 };
           break;
         default:
           sortOptions = { createdAt: -1 };
