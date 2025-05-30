@@ -5,7 +5,10 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-require('dotenv').config();
+const dotenv = require('dotenv');
+
+// Load env vars: Should be at the very top
+dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -16,13 +19,17 @@ const cartRoutes = require('./routes/cart.routes');
 const wishlistRoutes = require('./routes/wishlist.routes');
 const uploadRoutes = require('./routes/upload.routes');
 
-// Init app
+const connectDB = require('./config/db.js'); // Assuming db.js exports with module.exports
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Connect to MongoDB (after dotenv.config())
+connectDB();
+
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Allow the React app to access the API
+  origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : 'http://localhost:3000', // Example: use env var for prod origin
   credentials: true,
   exposedHeaders: ['Content-Length', 'Authorization']
 }));
@@ -52,12 +59,24 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// --- Deployment: Serve static assets in production ---
+if (process.env.NODE_ENV === 'production') {
+  // Set static folder - client/build is two levels up from server/src
+  app.use(express.static(path.join(__dirname, '../..', 'client/build')));
 
-// Error handling middleware
+  // Catch-all route to serve index.html for any other request not handled by API routes
+  app.get('*' , (req, res) => 
+    res.sendFile(path.resolve(__dirname, '../..', 'client/build', 'index.html'))
+  );
+} else {
+  // Development specific settings
+  app.get('/', (req, res) => {
+    res.send('API is running in development...');
+  });
+}
+// --- End Deployment Logic ---
+
+// Error handling middleware (should be after routes and production serving logic)
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({

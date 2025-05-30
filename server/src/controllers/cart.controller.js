@@ -201,11 +201,11 @@ exports.updateCartItem = async (req, res) => {
 };
 
 // @desc    Remove item from cart
-// @route   DELETE /api/cart/:productId
+// @route   DELETE /api/cart/:itemId
 // @access  Private
 exports.removeFromCart = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { itemId } = req.params;
     
     // Get user cart
     let cart = await Cart.findOne({ user: req.user._id });
@@ -216,10 +216,15 @@ exports.removeFromCart = async (req, res) => {
       });
     }
     
-    // Remove item from cart
-    cart.items = cart.items.filter(
-      item => item.product.toString() !== productId
-    );
+    // Find the item in the cart to get its product ID for stock update (if needed later)
+    const itemToRemove = cart.items.id(itemId);
+    if (!itemToRemove) {
+        return res.status(404).json({ success: false, message: 'Item not found in cart' });
+    }
+    // const productId = itemToRemove.product; // Keep this if you need to update stock upon removal
+
+    // Remove item from cart using $pull
+    cart.items.pull({ _id: itemId });
     
     // Save cart
     await cart.save();

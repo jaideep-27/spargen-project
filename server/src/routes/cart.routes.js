@@ -18,10 +18,10 @@ router.post('/', protect, cartController.addToCart);
 // @access  Private
 router.put('/:itemId', protect, cartController.updateCartItem);
 
-// @route   DELETE /api/cart/:productId
+// @route   DELETE /api/cart/:itemId
 // @desc    Remove item from cart
 // @access  Private
-router.delete('/:productId', protect, cartController.removeFromCart);
+router.delete('/:itemId', protect, cartController.removeFromCart);
 
 // @route   DELETE /api/cart
 // @desc    Clear cart

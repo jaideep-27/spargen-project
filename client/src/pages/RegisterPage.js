@@ -7,7 +7,8 @@ import Loader from '../components/ui/Loader';
 import '../styles/AuthPages.css';
 
 const RegisterPage = () => {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -51,7 +52,7 @@ const RegisterPage = () => {
       return;
     }
     
-    dispatch(register({ name, email, password }));
+    dispatch(register({ firstName, lastName, email, password }));
   };
   
   return (
@@ -69,9 +70,23 @@ const RegisterPage = () => {
                 <input
                   type="text"
                   className="neu-input"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <div className="input-icon-wrapper">
+                <FaUser className="input-icon" />
+                <input
+                  type="text"
+                  className="neu-input"
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                   required
                 />
               </div>

@@ -4,14 +4,14 @@ import { setAlert, setLoading } from './uiSlice';
 
 // Helper function to transform DB cart items and calculate total
 const transformDbCart = (dbCartData) => {
-  if (!dbCartData || !dbCartData.products) {
+  if (!dbCartData || !dbCartData.items) {
     return { cartItems: [], total: 0 };
   }
-  const cartItems = dbCartData.products.map(item => ({
+  const cartItems = dbCartData.items.map(item => ({
     itemId: item._id, // This is the cart item's ID from the DB
     product: item.product, // Assuming product is populated with details
     quantity: item.quantity,
-    price: item.priceAtPurchase || item.product.price, // Use priceAtPurchase if available
+    price: item.priceAtPurchase || (item.product ? item.product.price : 0), // Use priceAtPurchase if available, ensure product exists for price
     // Add any other fields CartPage might need directly on the item
   }));
   const total = dbCartData.totalPrice || cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);

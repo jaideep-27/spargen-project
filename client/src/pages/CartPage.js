@@ -30,13 +30,15 @@ const CartPage = () => {
     }
   };
 
-  const handleRemoveItem = (productId) => {
-    const item = cartItems.find(ci => (ci.product?._id || ci._id) === productId);
-    if (item) {
+  const handleRemoveItem = (itemId) => {
+    if (itemId) {
         dispatch(removeFromCart({ 
-            productId, 
-            itemId: item.itemId || item._id
+            itemId 
         }));
+    } else {
+        console.error("Cannot remove item: itemId is missing from cart item.");
+        // Optionally, dispatch an error alert to the user
+        // dispatch(setAlert({ type: 'error', message: 'Could not remove item. Please try again.'}));
     }
   };
 
@@ -62,7 +64,18 @@ const CartPage = () => {
           <div className="cart-items">
             {cartItems.map((item) => {
               const product = item.product || item;
-              const imageUrl = product.images && product.images.length > 0 ? product.images[0].url || product.images[0] : (product.image || 'placeholder.jpg');
+              let imageUrl = product.images && product.images.length > 0 ? product.images[0].url || product.images[0] : (product.image || 'placeholder.jpg');
+
+              // Log the initial image path from product data
+              // console.log(`Product: ${product.name}, Initial image path: ${product.images && product.images.length > 0 ? product.images[0].url || product.images[0] : product.image}`);
+
+              // Prepend base URL if imageUrl is a relative path and not a placeholder
+              if (imageUrl !== 'placeholder.jpg' && !imageUrl.startsWith('http')) {
+                imageUrl = `http://localhost:5000${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
+              }
+
+              // Log the final imageUrl being used
+              // console.log(`Product: ${product.name}, Final imageUrl: ${imageUrl}`);
 
               return (
                 <div key={product._id} className="cart-item">
@@ -109,7 +122,7 @@ const CartPage = () => {
                   
                   <button 
                     className="btn-remove-item"
-                    onClick={() => handleRemoveItem(product._id)}
+                    onClick={() => handleRemoveItem(item.itemId)}
                   >
                     &times;
                   </button>

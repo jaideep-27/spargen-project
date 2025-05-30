@@ -38,29 +38,43 @@ exports.register = async (req, res) => {
 
     const message = `Thank you for registering. Please verify your email by clicking the following link: \n\n ${verificationURL}`;
 
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Email Verification',
-        message
-      });
-      
+    // Conditionally send email only if not in development
+    if (process.env.NODE_ENV !== 'development') {
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: 'Email Verification',
+          message
+        });
+        
+        res.status(201).json({
+          success: true,
+          message: 'User registered successfully. Please check your email to verify your account.',
+        });
+
+      } catch (err) {
+        console.error('Email sending failed:', err);
+        // Important: Still save the user but clear token fields so they don't get stuck
+        user.verificationToken = undefined;
+        user.verificationTokenExpires = undefined;
+        await user.save({ validateBeforeSave: false });
+
+        return res.status(500).json({
+          success: false,
+          message: 'User registered, but email could not be sent. Please contact support.',
+          error: err.message
+        });
+      }
+    } else {
+      // In development, bypass email sending and auto-verify or just inform the user
+      // For simplicity, let's just send a success response. 
+      // You might want to auto-verify the user here or log the verification URL.
+      console.log(`Development: Email verification skipped for ${user.email}. Verification URL: ${verificationURL}`);
       res.status(201).json({
         success: true,
-        message: 'User registered successfully. Please check your email to verify your account.',
-        // We don't send the token here, user gets it after verification or login
-      });
-
-    } catch (err) {
-      console.error(err);
-      user.verificationToken = undefined;
-      user.verificationTokenExpires = undefined;
-      await user.save({ validateBeforeSave: false });
-
-      return res.status(500).json({
-        success: false,
-        message: 'Email could not be sent',
-        error: err.message
+        message: 'User registered successfully (Dev mode: email verification skipped).',
+        // Optionally send verificationToken or URL in dev for manual testing
+        // verificationToken: verificationToken 
       });
     }
 
